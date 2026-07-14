@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI駆動ダイナミカルシステムの信頼性保証に向けて ― 制御理論と錐計画・最適化の融合（キックオフミーティング）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#12232E;          /* deep slate-navy */
+    --ink-2:#1B3444;
+    --paper:#F4F6F7;        /* cool off-white (not cream) */
+    --paper-2:#FFFFFF;
+    --teal:#1F8A9B;         /* instrument teal */
+    --teal-bright:#43C3D4;
+    --amber:#E0A32E;        /* signal amber, used sparingly */
+    --line:#C7D3D8;
+    --line-dark:#2C4A5C;
+    --text:#12232E;
+    --text-mut:#5A6E78;
+    --text-inv:#E7EEF0;
+    --text-inv-mut:#9DB4BE;
+    --mono:'Space Mono',ui-monospace,monospace;
+    --disp:'Space Grotesk','Noto Sans JP',system-ui,sans-serif;
+    --body:'Noto Sans JP',system-ui,sans-serif;
+    --maxw:1200px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--body);
+    color:var(--text);
+    background:var(--paper);
+    line-height:1.8;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  a{color:inherit}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+
+  /* ---------- eyebrow / labels ---------- */
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:.72rem;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--teal);
+    display:inline-flex;align-items:center;gap:.6em;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--teal)}
+
+  /* ---------- HERO ---------- */
+  header{
+    background:var(--ink);
+    color:var(--text-inv);
+    position:relative;
+    overflow:hidden;
+    border-bottom:1px solid var(--line-dark);
+  }
+  .hero{
+    max-width:var(--maxw);margin:0 auto;padding:0 28px;
+    display:grid;grid-template-columns:1.6fr .8fr;gap:40px;
+    align-items:center;
+    min-height:82vh;
+  }
+  .hero-eyebrow{color:var(--teal-bright)}
+  .hero-eyebrow::before{background:var(--teal-bright)}
+  h1{
+    font-family:var(--disp);
+    font-weight:700;
+    font-size:clamp(1.9rem,4.4vw,3.2rem);
+    line-height:1.24;
+    letter-spacing:-.01em;
+    margin:.7em 0 .5em;
+  }
+  h1 .sub{
+    display:block;
+    font-family:var(--body);
+    font-weight:500;
+    font-size:clamp(1rem,1.9vw,1.35rem);
+    line-height:1.55;
+    color:var(--text-inv-mut);
+    margin-top:.55em;
+  }
+  .kicker{
+    display:inline-block;
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:.78rem;
+    letter-spacing:.14em;
+    color:var(--ink);
+    background:var(--amber);
+    padding:.35em .8em;
+    border-radius:2px;
+  }
+  .facts{
+    display:flex;flex-wrap:wrap;gap:10px 12px;margin-top:30px;
+  }
+  .fact{
+    border:1px solid var(--line-dark);
+    border-radius:4px;
+    padding:12px 16px;
+    min-width:150px;
+    background:rgba(255,255,255,.02);
+  }
+  .fact .k{
+    font-family:var(--mono);font-size:.66rem;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--teal-bright);
+  }
+  .fact .v{font-family:var(--disp);font-weight:500;font-size:1.02rem;margin-top:4px}
+  .fact .v small{display:block;font-family:var(--body);font-size:.8rem;color:var(--text-inv-mut);font-weight:400;margin-top:2px}
+
+  .cta-row{margin-top:30px;display:flex;flex-wrap:wrap;gap:12px}
+  .btn{
+    font-family:var(--disp);font-weight:500;font-size:.92rem;
+    text-decoration:none;padding:.7em 1.4em;border-radius:4px;
+    display:inline-flex;align-items:center;gap:.5em;transition:.18s;
+  }
+  .btn-solid{background:var(--teal-bright);color:var(--ink)}
+  .btn-solid:hover{background:#fff}
+  .btn-ghost{border:1px solid var(--line-dark);color:var(--text-inv)}
+  .btn-ghost:hover{border-color:var(--teal-bright);color:var(--teal-bright)}
+
+  /* ---------- hero schematic ---------- */
+  .schematic{width:100%;height:auto;display:block}
+  .schematic .blk{fill:none;stroke:var(--teal-bright);stroke-width:1.5}
+  .schematic .blk-nn{fill:none;stroke:var(--amber);stroke-width:1.75}
+  .schematic .wire{fill:none;stroke:#6FA7B3;stroke-width:1.4}
+  .schematic .lbl{fill:var(--text-inv);font-family:var(--disp);font-size:13px;font-weight:500}
+  .schematic .lbl-mono{fill:var(--text-inv-mut);font-family:var(--mono);font-size:10px;letter-spacing:.08em}
+  .schematic .lbl-amber{fill:var(--amber);font-family:var(--disp);font-size:13px;font-weight:700}
+  .schematic .node{fill:var(--teal-bright)}
+  .draw{stroke-dasharray:900;stroke-dashoffset:900;animation:draw 2.2s ease forwards}
+  .draw.d2{animation-delay:.35s}
+  .draw.d3{animation-delay:.7s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .fade{opacity:0;animation:fade .8s ease forwards;animation-delay:1.6s}
+  @keyframes fade{to{opacity:1}}
+
+  /* ---------- sections ---------- */
+  section{padding:76px 0}
+  .sec-head{margin-bottom:34px}
+  .sec-head h2{
+    font-family:var(--disp);font-weight:700;
+    font-size:clamp(1.4rem,2.8vw,2rem);letter-spacing:-.01em;
+    margin-top:.35em;line-height:1.35;
+  }
+  .lede{font-size:1.05rem;color:var(--text-mut);max-width:120ch;margin-top:1em}
+
+  .divide{border:none;border-top:1px solid var(--line)}
+
+  /* overview grid */
+  .aims{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:36px}
+  .aim{background:var(--paper-2);border:1px solid var(--line);border-radius:6px;padding:24px 22px}
+  .aim .n{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;color:var(--teal);font-weight:700}
+  .aim h3{font-family:var(--disp);font-weight:500;font-size:1.08rem;margin:.6em 0 .5em;line-height:1.5}
+  .aim p{font-size:.92rem;color:var(--text-mut)}
+
+  /* program */
+  .prog-note{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;color:var(--amber);margin-bottom:18px}
+  .prog{border-top:2px solid var(--ink)}
+  .row{
+    display:grid;grid-template-columns:160px 1fr;gap:22px;
+    padding:18px 4px;border-bottom:1px solid var(--line);align-items:baseline;
+  }
+  .row .t{font-family:var(--mono);font-size:.9rem;color:var(--teal);font-weight:700;white-space:nowrap}
+  .row .d .ti{font-family:var(--disp);font-weight:500;font-size:1.05rem}
+  .row .d .sp{font-size:.88rem;color:var(--text-mut);margin-top:2px}
+  .row.break{background:transparent}
+  .row.break .ti{color:var(--text-mut);font-weight:400;font-family:var(--body);font-size:.95rem}
+
+  /* venue */
+  .venue-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+  .card{background:var(--paper-2);border:1px solid var(--line);border-radius:6px;padding:26px}
+  .card h3{font-family:var(--disp);font-weight:700;font-size:1.05rem;margin-bottom:14px}
+  .kv{display:grid;grid-template-columns:90px 1fr;gap:8px 14px;font-size:.94rem}
+  .kv dt{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;color:var(--text-mut);text-transform:uppercase;padding-top:3px}
+  .kv dd{color:var(--text)}
+  .placeholder{color:var(--text-mut);font-style:italic}
+  .card a{color:var(--teal);text-decoration:none;border-bottom:1px solid var(--teal);word-break:break-all}
+  .card a:hover{color:var(--ink);border-color:var(--ink)}
+
+  /* organizers */
+  .org-list{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px}
+  .org{border:1px solid var(--line);border-radius:6px;padding:16px 20px;background:var(--paper-2);min-width:210px}
+  .org .role{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
+  .org .name{font-family:var(--disp);font-weight:500;font-size:1.05rem;margin-top:4px}
+  .org .aff{font-size:.85rem;color:var(--text-mut)}
+
+  /* contact strip */
+  .contact{background:var(--ink);color:var(--text-inv);border-radius:8px;padding:40px 36px;margin-top:8px}
+  .contact h3{font-family:var(--disp);font-weight:700;font-size:1.3rem;margin-bottom:10px}
+  .contact p{color:var(--text-inv-mut);max-width:60ch}
+  .contact a.mail{color:var(--teal-bright);font-family:var(--mono);font-size:.95rem;text-decoration:none;border-bottom:1px solid transparent}
+  .contact a.mail:hover{border-color:var(--teal-bright)}
+
+  footer{border-top:1px solid var(--line);padding:36px 0 60px;margin-top:20px}
+  .foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:center}
+  .foot .ack{font-size:.82rem;color:var(--text-mut);max-width:none;flex:1 1 100%}
+  .foot .mono{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;color:var(--text-mut)}
+
+  /* responsive */
+  @media(max-width:860px){
+    .hero{grid-template-columns:1fr;min-height:auto;padding-top:64px;padding-bottom:56px;gap:36px}
+    .aims{grid-template-columns:1fr}
+    .venue-grid{grid-template-columns:1fr}
+    .row{grid-template-columns:1fr;gap:4px}
+    .row .t{font-size:.82rem}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .draw{animation:none;stroke-dashoffset:0}
+    .fade{animation:none;opacity:1}
+    html{scroll-behavior:auto}
+  }
+  :focus-visible{outline:2px solid var(--teal-bright);outline-offset:3px;border-radius:2px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hero">
+    <div>
+      <span class="hero-eyebrow eyebrow">Kick-off Meeting</span>
+      <h1>
+        AI駆動ダイナミカルシステムの信頼性保証に向けて
+        <span class="sub">― 制御理論と錐計画・最適化の融合（キックオフミーティング）</span>
+      </h1>
+      <div style="margin-top:8px"><span class="kicker">2026.09.03 &nbsp;THU&nbsp;·&nbsp;NIHONBASHI</span></div>
+
+      <div class="facts">
+        <div class="fact">
+          <div class="k">Date</div>
+          <div class="v">2026年9月3日<small>（木）15:00 – 18:00</small></div>
+        </div>
+        <div class="fact">
+          <div class="k">Venue</div>
+          <div class="v">日本橋ライフサイエンスビルディング<small>911講義室</small></div>
+        </div>
+        <div class="fact">
+          <div class="k">Language</div>
+          <div class="v">日本語<small>Japanese</small></div>
+        </div>
+      </div>
+
+      <div class="cta-row">
+        <a class="btn btn-solid" href="#program">プログラムを見る</a>
+        <a class="btn btn-ghost" href="#contact">お問い合わせ</a>
+      </div>
+    </div>
+
+    <!-- signature: Lur'e feedback loop with AI/NN block -->
+    <div>
+      <svg class="schematic fade" viewBox="0 0 420 300" role="img" aria-label="AI・NN 要素を帰還路に含む非線形フィードバックシステムの模式図">
+        <!-- summing junction -->
+        <circle class="blk draw" cx="70" cy="90" r="16"/>
+        <line class="blk" x1="58" y1="90" x2="82" y2="90" stroke-width="1.2"/>
+        <line class="blk" x1="70" y1="78" x2="70" y2="102" stroke-width="1.2"/>
+        <!-- input arrow -->
+        <line class="wire draw" x1="14" y1="90" x2="54" y2="90"/>
+        <polygon class="node" points="54,90 46,86 46,94"/>
+        <text class="lbl-mono" x="14" y="80">r(t)</text>
+        <!-- forward: linear plant G -->
+        <line class="wire draw" x1="86" y1="90" x2="150" y2="90"/>
+        <rect class="blk draw d2" x="150" y="66" width="96" height="48" rx="3"/>
+        <text class="lbl" x="198" y="88" text-anchor="middle">線形システム</text>
+        <text class="lbl-mono" x="198" y="105" text-anchor="middle">G(s)</text>
+        <!-- output -->
+        <line class="wire draw d2" x1="246" y1="90" x2="360" y2="90"/>
+        <circle class="node" cx="330" cy="90" r="2.5"/>
+        <polygon class="node" points="360,90 352,86 352,94"/>
+        <text class="lbl-mono" x="366" y="80">y(t)</text>
+        <!-- feedback down -->
+        <line class="wire draw d2" x1="330" y1="90" x2="330" y2="200"/>
+        <!-- AI / NN block (accent) -->
+        <rect class="blk-nn draw d3" x="150" y="176" width="96" height="48" rx="3"/>
+        <text class="lbl-amber" x="198" y="197" text-anchor="middle">AI / Neural Net. </text>
+        <text class="lbl-mono" x="198" y="214" text-anchor="middle" style="fill:var(--amber)">&#966;(&#183;)</text>
+        <line class="wire draw d3" x1="330" y1="200" x2="246" y2="200"/>
+        <polygon class="node" points="246,200 254,196 254,204" style="fill:var(--amber)"/>
+        <!-- feedback to summing junction -->
+        <line class="wire draw d3" x1="150" y1="200" x2="70" y2="200"/>
+        <line class="wire draw d3" x1="70" y1="200" x2="70" y2="106"/>
+        <polygon class="node" points="70,106 66,114 74,114"/>
+        <text class="lbl-mono" x="60" y="150" text-anchor="end">−</text>
+
+        <!-- certificate cone glyph -->
+        <g class="fade">
+          <path class="blk" d="M300 250 L342 226 L342 274 Z" opacity=".9"/>
+          <ellipse class="blk" cx="342" cy="250" rx="7" ry="24" opacity=".9"/>
+          <text class="lbl-mono" x="325" y="292" text-anchor="middle" style="letter-spacing:.06em">CONVEX CONE&#160;·&#160;SDP CERTIFICATE</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<!-- ---------- OVERVIEW ---------- -->
+<section id="about">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">趣旨 &nbsp;/&nbsp; Aim</span>
+      <!--<h2>錐計画に基づく AI 駆動ダイナミカルシステムの信頼性保証</h2>-->
+      <p class="lede">
+      この研究集会は、日本学術振興会 科学研究費助成事業　基盤研究(B)（課題番号 26K02868）「錐計画に基づく AI 駆動ダイナミカルシステムの信頼性保証」（研究代表者：蛯原義雄、研究機関：九州大学、研究期間：2026–2029 年度）の一環で開催される研究集会です。  
+    </p>
+      <p class="lede">      
+      本研究集会は、研究課題「錐計画に基づく AI 駆動ダイナミカルシステムの信頼性保証」の一環として開催いたします。本課題では、<strong>制御理論および最適化理論の研究者が連携し、錐計画に基づいて AI 駆動系の安定性・信頼性を証明するための手法の開発を目指しております</strong>。本集会では、本課題に関連する研究に取り組む研究者の方々をお招きし、ご講演を賜る予定です。
+            </p>
+    </div>
+<!--
+    <div class="aims">
+      <div class="aim">
+        <div class="n">01 / METHOD</div>
+        <h3>錐計画による信頼性の証明</h3>
+        <p>AI・NN 要素を二次制約として抱え込み、錐計画（SDP・LMI）により AI 駆動ダイナミカルシステムの安定性・信頼性に対する証明（certificate）を構成します。</p>
+      </div>
+      <div class="aim">
+        <div class="n">02 / THEORY</div>
+        <h3>絶対安定性解析の理論深化</h3>
+        <p>本手法に密接に関連する、非線形フィードバックシステム（NLFS）の絶対安定性解析について、新たな理論的成果の創出を目指します。</p>
+      </div>
+      <div class="aim">
+        <div class="n">03 / NETWORK</div>
+        <h3>国際連携と若手育成</h3>
+        <p>JST ASPIRE「ASPIRE-CPDS」（2024年12月–2030年3月）と連携し、国際共同研究を促進、国際的学術活動を牽引する若手研究者の育成に貢献します。</p>
+      </div>
+    </div>
+    -->
+  </div>
+</section>
+
+<hr class="divide">
+
+<!-- ---------- PROGRAM ---------- -->
+<section id="program">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">プログラム &nbsp;/&nbsp; Program</span>
+      <h2>当日のプログラム</h2>
+    </div>
+    <div class="prog-note">※ 以下は暫定案です。講演題目・登壇者は調整中。</div>
+
+    <div class="prog">
+      <div class="row break">
+        <div class="t">13:30 – 14:30</div>
+        <div class="d"><div class="ti">ミーティング（非公開）</div></div>
+      </div>
+      <div class="row">
+        <div class="t">15:00 – 15:10</div>
+        <div class="d"><div class="ti">開会挨拶・趣旨説明・プロジェクト説明</div></div>
+      </div>
+      <div class="row">
+        <div class="t">15:10 – 15:40</div>
+        <div class="d"><div class="ti">招待講演 1（題目・登壇者 調整中）</div></div>
+      </div>
+      <div class="row">
+        <div class="t">15:40 – 16:10</div>
+        <div class="d"><div class="ti">招待講演 2（題目・登壇者 調整中）</div></div>
+      </div>
+      <div class="row break">
+        <div class="t">16:10 – 16:20</div>
+        <div class="d"><div class="ti">── 休憩 ──</div></div>
+      </div>
+      <div class="row">
+        <div class="t">16:20 – 16:50</div>
+        <div class="d"><div class="ti">招待講演 3（題目・登壇者 調整中）</div></div>
+      </div>
+      <div class="row">
+        <div class="t">16:50 – 17:20</div>
+        <div class="d"><div class="ti">招待講演 4（題目・登壇者 調整中）</div></div>
+      </div>
+      <div class="row">
+        <div class="t">17:20 – 18:00</div>
+        <div class="d"><div class="ti">閉会挨拶・片付け</div></div>
+      </div>
+       <div class="row">
+        <div class="t">18:00 –</div>
+        <div class="d"><div class="ti">別会場で懇親会（希望者のみ）</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divide">
+
+<!-- ---------- VENUE ---------- -->
+<section id="venue">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">会場・アクセス &nbsp;/&nbsp; Venue</span>
+      <h2>日本橋ライフサイエンスビルディング　911講義室</h2>
+    </div>
+    <div class="venue-grid">
+      <div class="card">
+        <h3>開催情報</h3>
+        <dl class="kv">
+          <dt>Date</dt><dd>2026年9月3日（木）13:00 – 18:00</dd>
+          <dt>Place</dt><dd>日本橋ライフサイエンスビルディング　9 階 911講義室</dd>
+          <dt>Address</dt><dd>〒103-0023　東京都中央区日本橋本町 2-3-11</dd>
+          <dt>Fee</dt><dd>無料</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <h3>アクセス</h3>
+        <p style="font-size:.94rem">最寄駅・経路など会場の詳細は、日本橋ライフサイエンスビルディングの公式サイトをご参照ください。地図上の「01. 日本橋ライフサイエンスビルディング」が会場です。</p>
+        <p style="font-size:.9rem;margin-top:12px"><a href="https://www.nihonbashi-lifescience.jp/#access" target="_blank" rel="noopener">https://www.nihonbashi-lifescience.jp/#access</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divide">
+
+<!-- ---------- ORGANIZERS + CONTACT ---------- -->
+<section id="contact">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">主催・お問い合わせ &nbsp;/&nbsp; Organizers</span>
+      <h2>世話人</h2>
+    </div>
+
+    <div class="org-list">
+      <div class="org">
+        <div class="role">研究代表者</div>
+        <div class="name">蛯原 義雄</div>
+        <div class="aff">京都大学・九州大学</div>
+      </div>
+      <div class="org">
+        <div class="role">世話人</div>
+        <div class="name">瀬部 昇</div>
+        <div class="aff">九州工業大学</div>
+      </div>
+      <div class="org">
+        <div class="role">世話人</div>
+        <div class="name">山下 真</div>
+        <div class="aff">東京科学大学</div>
+      </div>
+      <div class="org">
+        <div class="role">世話人</div>
+        <div class="name">脇 隼人</div>
+        <div class="aff">九州大学</div>
+      </div>
+    </div>
+
+    <div class="contact">
+      <h3>お問い合わせ</h3>
+      <p>ご不明な点は下記までご連絡ください。</p>
+      <p style="margin-top:16px"><a class="mail" href="mailto:">連絡先メールアドレス：調整中</a></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+ <!-- <div class="wrap foot">
+    <div class="ack">
+      本研究集会は、日本学術振興会 科学研究費助成事業　基盤研究(B)（課題番号 26K02868）「錐計画に基づく AI 駆動ダイナミカルシステムの信頼性保証」（研究代表者：蛯原義雄、研究機関：九州大学、研究期間：2026–2029 年度）の支援を受けて開催されます。
+    </div>
+    <div class="mono">© 2026 &nbsp;Kick-off Meeting</div>
+  </div> 
+  -->
+</footer>
+
+</body>
+</html>
